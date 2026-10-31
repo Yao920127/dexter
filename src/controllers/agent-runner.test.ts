@@ -63,13 +63,13 @@ describe('AgentRunnerController', () => {
     );
 
     controller.updateAgentConfig({
-      model: 'ollama:llama3.1',
-      modelProvider: 'ollama',
+      model: 'ollama-cloud:llama3.1',
+      modelProvider: 'ollama-cloud',
     });
 
     expect(controller.currentConfig).toMatchObject({
-      model: 'ollama:llama3.1',
-      modelProvider: 'ollama',
+      model: 'ollama-cloud:llama3.1',
+      modelProvider: 'ollama-cloud',
       maxIterations: 10,
     });
   });

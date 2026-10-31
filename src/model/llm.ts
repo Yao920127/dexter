@@ -20,7 +20,7 @@ export const DEFAULT_MODEL = 'gpt-6-astra';
 
 /**
  * Gets the fast model variant for the given provider.
- * Falls back to the provided model if no fast variant is configured (e.g., Ollama).
+ * Falls back to the provided model if no fast variant is configured (e.g., Ollama Cloud).
  */
 export function getFastModel(modelProvider: string, fallbackModel: string): string {
   return getProviderById(modelProvider)?.fastModel ?? fallbackModel;
@@ -127,12 +127,6 @@ const MODEL_FACTORIES: Record<string, ModelFactory> = {
       }),
     });
   },
-  ollama: (name, opts) =>
-    new ChatOllama({
-      model: name.replace(/^ollama:/, ''),
-      ...opts,
-      ...(process.env.OLLAMA_BASE_URL ? { baseUrl: process.env.OLLAMA_BASE_URL } : {}),
-    }),
   'ollama-cloud': (name, opts) => {
     const apiKey = process.env.OLLAMA_CLOUD_API_KEY;
     return new ChatOllama({

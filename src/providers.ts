@@ -10,7 +10,7 @@ export interface ProviderDef {
   displayName: string;
   /** Model name prefix used for routing (e.g., 'claude-'). Empty string for default (OpenAI). */
   modelPrefix: string;
-  /** Environment variable name for API key. Omit for local providers (e.g., Ollama). */
+  /** Environment variable name for API key. */
   apiKeyEnvVar?: string;
   /** Fast model variant for lightweight tasks like summarization. */
   fastModel?: string;
@@ -73,12 +73,6 @@ export const PROVIDERS: ProviderDef[] = [
     modelPrefix: 'openrouter:',
     apiKeyEnvVar: 'OPENROUTER_API_KEY',
     fastModel: 'openrouter:openai/gpt-4o-mini',
-    contextWindow: 128_000,
-  },
-  {
-    id: 'ollama',
-    displayName: 'Ollama',
-    modelPrefix: 'ollama:',
     contextWindow: 128_000,
   },
   {

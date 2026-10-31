@@ -43,10 +43,10 @@ describe('parseEvalOptions', () => {
       '--model',
       'openrouter:anthropic/claude-opus-4.1',
       '--judge-model',
-      'ollama:llama3.3',
+      'ollama-cloud:llama3.3',
     ])).toEqual({
       model: 'openrouter:anthropic/claude-opus-4.1',
-      judgeModel: 'ollama:llama3.3',
+      judgeModel: 'ollama-cloud:llama3.3',
       quick: false,
       seed: DEFAULT_EVAL_SEED,
       concurrency: DEFAULT_EVAL_CONCURRENCY,

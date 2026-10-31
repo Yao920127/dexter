@@ -89,6 +89,19 @@ Generate a brief 1-2 sentence summary of this answer.`;
   }
 
   /**
+   * Re-adds a completed turn from persisted history. The summary is a plain truncation,
+   * so restoring never triggers an LLM call.
+   */
+  restoreTurn(query: string, answer: string): void {
+    this.messages.push({
+      id: this.messages.length,
+      query,
+      answer,
+      summary: answer.slice(0, 300),
+    });
+  }
+
+  /**
    * Returns all messages
    */
   getMessages(): Message[] {

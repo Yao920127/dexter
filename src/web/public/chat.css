@@ -1,0 +1,118 @@
+/* Research desk: a full-height app shell (sidebar + conversation pane), in Newsprint paper and ink. */
+
+html, body.chatpage { height: 100%; }
+body.chatpage { overflow: hidden; }
+
+.ic { width: 20px; height: 20px; flex: none; }
+.iconbtn { width: 40px; height: 40px; display: inline-grid; place-items: center; flex: none; color: var(--dp-color-ink); background: transparent; border: none; border-radius: var(--dp-radius-control); cursor: pointer; transition: var(--dp-motion-transition); }
+.iconbtn:hover { color: var(--dp-color-ground); background: var(--dp-color-ink); }
+
+.app { display: grid; grid-template-columns: 280px minmax(0, 1fr); height: 100vh; height: 100dvh; }
+.app.collapsed { grid-template-columns: 60px minmax(0, 1fr); }
+
+/* ---- Sidebar ---- */
+.side { display: flex; flex-direction: column; min-height: 0; padding: 10px; gap: 2px; border-right: var(--dp-border-hairline) solid var(--dp-color-rule); overflow: hidden; }
+.side-top { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding-left: 4px; }
+.brand { font-family: var(--dp-typography-display); font-weight: var(--dp-typography-display-weight); font-size: 28px; letter-spacing: -0.04em; line-height: 1; text-transform: uppercase; text-decoration: none; color: var(--dp-color-ink); }
+.brand:hover { color: var(--dp-color-accent); }
+.navitem { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 40px; padding: 0 10px; font-family: var(--dp-typography-display); font-size: var(--dp-typography-control); font-weight: 650; line-height: var(--dp-typography-control-leading); text-align: left; text-decoration: none; color: var(--dp-color-ink); background: transparent; border: none; border-radius: var(--dp-radius-control); cursor: pointer; transition: var(--dp-motion-transition); }
+.navitem:hover, .navitem.active { color: var(--dp-color-ground); background: var(--dp-color-ink); }
+.searchrow { cursor: text; }
+.searchrow input { flex: 1; min-width: 0; font: inherit; color: inherit; background: transparent; border: none; outline: none; padding: 0; }
+.searchrow input::placeholder { color: var(--dp-color-secondary); opacity: 1; }
+.searchrow:hover input::placeholder { color: var(--dp-color-rule); }
+.searchrow:focus-within { outline: var(--dp-border-focus) solid var(--dp-color-ink); outline-offset: -2px; }
+
+.side-scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 10px; padding-top: 6px; border-top: var(--dp-border-hairline) solid var(--dp-color-rule); }
+.group-label { margin: 14px 0 4px; padding: 0 10px; }
+.histlist { list-style: none; margin: 0; padding: 0; }
+.histlist li { display: flex; align-items: stretch; }
+.histitem { flex: 1; min-width: 0; padding: 9px 10px; text-align: left; font-family: var(--dp-typography-display); font-size: 16px; font-weight: 600; line-height: 1.2; color: var(--dp-color-ink); background: transparent; border: none; cursor: pointer; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; transition: var(--dp-motion-transition); }
+.histdel { flex: none; width: 36px; font-size: 20px; line-height: 1; color: var(--dp-color-secondary); background: transparent; border: none; cursor: pointer; visibility: hidden; }
+.histlist li:hover, .histlist li.active { background: var(--dp-color-ink); }
+.histlist li:hover .histitem, .histlist li.active .histitem, .histlist li:hover .histdel, .histlist li.active .histdel { color: var(--dp-color-ground); }
+.histlist li:hover .histdel, .histlist li:focus-within .histdel, .histlist li.active .histdel { visibility: visible; }
+.histdel:hover { color: var(--dp-color-accent) !important; }
+.side .note { padding: 0 10px; }
+.side-foot { padding-top: 8px; border-top: var(--dp-border-hairline) solid var(--dp-color-rule); }
+
+/* Collapsed rail: icons only */
+.app.collapsed .navlabel, .app.collapsed .brand, .app.collapsed .searchrow input, .app.collapsed .side-scroll { display: none; }
+.app.collapsed .side-top { justify-content: center; padding-left: 0; }
+.app.collapsed .navitem { justify-content: center; padding: 0; }
+
+/* ---- Conversation pane ---- */
+.pane { position: relative; display: flex; flex-direction: column; min-width: 0; height: 100%; min-height: 0; }
+.panebar { position: absolute; inset: 0 0 auto 0; z-index: 2; display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 8px 12px; background: var(--dp-color-ground); }
+.modelname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; padding: 8px 4px; }
+.modelname:hover { color: var(--dp-color-accent); text-decoration: underline; }
+.mobileonly { display: none; }
+
+.scroller { flex: 1; min-height: 0; overflow-y: auto; padding-top: 56px; }
+.column { width: 100%; max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+/* Before the first message: greeting, composer and suggestions sit together mid-pane */
+body:not(.started) .pane { justify-content: center; }
+body:not(.started) .scroller { flex: none; overflow: visible; padding-top: 0; }
+.hero { text-align: center; padding: 0 0 22px; }
+.hero h1 { font-size: clamp(30px, 4.2vw, 44px); margin-top: 4px; }
+body.started .hero { display: none; }
+
+.dock { padding-bottom: max(10px, env(safe-area-inset-bottom)); background: var(--dp-color-ground); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.composer .box { display: flex; align-items: flex-end; gap: 10px; padding: 8px 8px 8px 16px; background: var(--dp-color-ground); border: var(--dp-border-hairline) solid var(--dp-color-ink); }
+.composer .box:focus-within { outline: var(--dp-border-focus) solid var(--dp-color-ink); outline-offset: 3px; }
+.composer textarea { flex: 1; min-width: 0; min-height: 44px; max-height: 220px; resize: none; padding: 9px 0; font: inherit; font-size: var(--dp-typography-body); line-height: var(--dp-typography-body-leading); color: var(--dp-color-ink); background: transparent; border: none; outline: none; }
+.send { flex: none; width: 44px; height: 44px; font-family: var(--dp-typography-display); font-size: 20px; font-weight: 800; line-height: 1; color: var(--dp-color-ground); background: var(--dp-color-ink); border: var(--dp-border-hairline) solid var(--dp-color-ink); border-radius: var(--dp-radius-control); cursor: pointer; transition: var(--dp-motion-transition); }
+.send:hover { color: var(--dp-color-ink); background: transparent; }
+.dock .disclaimer { border-top: none; padding: 10px 0 0; margin: 0; text-align: center; font-size: 14px; }
+
+.suggest { list-style: none; margin: 18px 0 0; padding: 0; }
+.suggest button { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 48px; padding: 10px 12px; text-align: left; font: inherit; font-size: var(--dp-typography-reading-compact); color: var(--dp-color-secondary); background: transparent; border: none; border-bottom: var(--dp-border-hairline) solid var(--dp-color-rule); cursor: pointer; transition: var(--dp-motion-transition); }
+.suggest li:first-child button { border-top: var(--dp-border-hairline) solid var(--dp-color-rule); }
+.suggest button:hover { color: var(--dp-color-ground); background: var(--dp-color-ink); }
+body.started .suggest { display: none; }
+
+/* ---- Messages ---- */
+.turn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 12px 0 var(--dp-spacing-story); }
+.me { justify-self: end; max-width: 82%; margin: 0; padding: 8px 14px; color: var(--dp-color-ground); background: var(--dp-color-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.reply { min-width: 0; }
+.reply .label { margin: 0 0 4px; }
+.answer { min-width: 0; overflow-wrap: anywhere; }
+.answer h1, .answer h2, .answer h3 { font-size: 24px; margin: 18px 0 6px; letter-spacing: -0.01em; }
+.answer ul, .answer ol { padding-left: 24px; margin: 0 0 12px; }
+.answer blockquote { margin: 0 0 12px; padding-left: 16px; border-left: var(--dp-border-hairline) solid var(--dp-color-rule); font-style: italic; }
+.answer table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; font-size: var(--dp-typography-reading-compact); margin: 0 0 14px; }
+.answer th, .answer td { text-align: left; padding: 5px 10px 5px 0; border-bottom: var(--dp-border-hairline) solid var(--dp-color-rule); vertical-align: top; }
+.answer th { font-family: var(--dp-typography-display); font-size: var(--dp-typography-label); text-transform: uppercase; letter-spacing: var(--dp-typography-label-tracking); border-bottom-color: var(--dp-color-ink); }
+.answer code { border-bottom: var(--dp-border-hairline) solid var(--dp-color-rule); }
+.answer pre { max-width: 100%; }
+.pending { font-style: italic; color: var(--dp-color-secondary); }
+
+/* ---- Tablets and phones: the sidebar becomes a drawer ---- */
+@media (max-width: 900px) {
+  .app, .app.collapsed { grid-template-columns: minmax(0, 1fr); }
+  .mobileonly { display: inline-grid; }
+  .side { display: none; position: fixed; inset: 0 auto 0 0; z-index: 20; width: min(88vw, 340px); height: 100vh; height: 100dvh; background: var(--dp-color-ground); padding-left: max(10px, env(safe-area-inset-left)); }
+  .side.open { display: flex; }
+  .app.collapsed .navlabel, .app.collapsed .brand, .app.collapsed .searchrow input, .app.collapsed .side-scroll { display: revert; }
+  .app.collapsed .side-top { justify-content: space-between; padding-left: 4px; }
+  .app.collapsed .navitem { justify-content: flex-start; padding: 0 10px; }
+  .scrim { position: fixed; inset: 0; z-index: 10; background: rgba(25, 25, 22, 0.4); }
+  .scrim[hidden] { display: none; }
+  .histdel { visibility: visible; width: 44px; }
+  .navitem, .histitem { min-height: 44px; }
+  .searchrow input { font-size: 16px; }
+  .column { padding: 0 16px; }
+  .me { max-width: 92%; }
+}
+@media (min-width: 901px) { .scrim { display: none; } }
+@media (hover: none) { .histdel { visibility: visible; } }
+@media (max-width: 700px) {
+  .composer textarea { font-size: 18px; } /* 16px+ prevents iOS focus-zoom */
+  .suggest button { padding-top: 12px; padding-bottom: 12px; }
+}
+@media (max-height: 560px) {
+  body:not(.started) .hero { padding-bottom: 10px; }
+  .suggest { display: none; }
+}

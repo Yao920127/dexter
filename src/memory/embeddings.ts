@@ -1,11 +1,9 @@
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
-import { OllamaEmbeddings } from '@langchain/ollama';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import type { EmbeddingProviderId, MemoryEmbeddingClient } from './types.js';
 
 const DEFAULT_OPENAI_MODEL = 'text-embedding-3-small';
 const DEFAULT_GEMINI_MODEL = 'gemini-embedding-001';
-const DEFAULT_OLLAMA_MODEL = 'nomic-embed-text';
 const EMBEDDING_BATCH_SIZE = 64;
 const EMBEDDING_TIMEOUT_MS = 15_000;
 
@@ -34,9 +32,6 @@ function resolveProvider(preferred: EmbeddingProviderId): ResolvedProvider | nul
   if (preferred === 'gemini' && process.env.GOOGLE_API_KEY) {
     return 'gemini';
   }
-  if (preferred === 'ollama') {
-    return 'ollama';
-  }
 
   if (preferred === 'auto') {
     if (process.env.OPENAI_API_KEY) {
@@ -44,9 +39,6 @@ function resolveProvider(preferred: EmbeddingProviderId): ResolvedProvider | nul
     }
     if (process.env.GOOGLE_API_KEY) {
       return 'gemini';
-    }
-    if (process.env.OLLAMA_BASE_URL) {
-      return 'ollama';
     }
   }
 
@@ -103,17 +95,7 @@ export function createEmbeddingClient(params: {
     };
   }
 
-  const model = params.model || DEFAULT_OLLAMA_MODEL;
-  const embeddings = new OllamaEmbeddings({
-    baseUrl: process.env.OLLAMA_BASE_URL,
-    model,
-  });
-  return {
-    provider: 'ollama',
-    model,
-    embed: async (texts: string[]) =>
-      embedInBatches(texts, async (batch) => embeddings.embedDocuments(batch)),
-  };
+  return null;
 }
 
 export async function embedSingleQuery(

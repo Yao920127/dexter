@@ -114,7 +114,6 @@ export const en = {
   'select.searchTitle': 'Select web search provider',
   'select.searchDesc': 'Dexter tries your preferred provider first and falls back to the others.',
   'select.noModels': 'No models available.',
-  'select.ollamaHint': 'Make sure Ollama is running and you have models downloaded.',
   'select.escBack': 'esc to go back',
 
   // Question prompt

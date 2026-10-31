@@ -36,12 +36,12 @@ const DEPRECATED_MODEL_UPGRADES: Record<string, string> = {
 
 interface Config {
   provider?: string;
-  modelId?: string;  // Selected model ID (e.g., "gpt-6-astra", "ollama:llama3.1")
+  modelId?: string;  // Selected model ID (e.g., "gpt-6-astra", "ollama-cloud:llama3.1")
   model?: string;    // Legacy key, kept for migration
   webSearchPreferredProvider?: 'exa' | 'perplexity' | 'tavily';
   memory?: {
     enabled?: boolean;
-    embeddingProvider?: 'openai' | 'gemini' | 'ollama' | 'auto';
+    embeddingProvider?: 'openai' | 'gemini' | 'auto';
     embeddingModel?: string;
     maxSessionContextTokens?: number;
   };
@@ -121,7 +121,12 @@ export function getSetting<T>(key: string, defaultValue: T): T {
     config = migrateModelToProvider(config);
   }
   
-  return (config[key] as T) ?? defaultValue;
+  const value = config[key];
+  // Local Ollama models were removed for cloud deployment; selections saved for them fall back to the default.
+  if (key === 'provider' && value === 'ollama') return defaultValue;
+  if (key === 'modelId' && typeof value === 'string' && value.startsWith('ollama:')) return defaultValue;
+
+  return (value as T) ?? defaultValue;
 }
 
 export function setSetting(key: string, value: unknown): boolean {

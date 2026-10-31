@@ -25,11 +25,6 @@ class EmptyModelSelector extends Container {
     super();
     this.onCancel = onCancel;
     this.addChild(new Text(theme.muted(t('select.noModels')), 0, 0));
-    if (providerId === 'ollama') {
-      this.addChild(
-        new Text(theme.muted(t('select.ollamaHint')), 0, 0),
-      );
-    }
     this.addChild(new Text(theme.muted(t('select.escBack')), 0, 0));
   }
 

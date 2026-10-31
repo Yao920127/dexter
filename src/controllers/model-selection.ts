@@ -9,7 +9,7 @@ import {
   getModelsForProvider,
   type Model,
 } from '../utils/model.js';
-import { getOllamaModels, getOllamaCloudModels } from '../utils/ollama.js';
+import { getOllamaCloudModels } from '../utils/ollama.js';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from '../model/llm.js';
 import { InMemoryChatHistory } from '../utils/in-memory-chat-history.js';
 
@@ -101,14 +101,6 @@ export class ModelSelectionController {
       return;
     }
 
-    if (providerId === 'ollama') {
-      const ollamaModelIds = await getOllamaModels();
-      this.pendingModelsValue = ollamaModelIds.map((id) => ({ id, displayName: id }));
-      this.appStateValue = 'model_select';
-      this.emitChange();
-      return;
-    }
-
     if (providerId === 'ollama-cloud') {
       const ollamaCloudModelIds = await getOllamaCloudModels();
       this.pendingModelsValue = ollamaCloudModelIds.map((id) => ({ id, displayName: id }));
@@ -129,11 +121,6 @@ export class ModelSelectionController {
       this.pendingSelectedModelId = null;
       this.appStateValue = 'provider_select';
       this.emitChange();
-      return;
-    }
-
-    if (this.pendingProviderValue === 'ollama') {
-      this.completeModelSwitch(this.pendingProviderValue, `ollama:${modelId}`);
       return;
     }
 

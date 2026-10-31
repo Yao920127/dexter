@@ -30,6 +30,20 @@ function getSession(sessionKey: string, model: string): SessionState {
 }
 
 /**
+ * Rebuild a session's context from persisted turns (e.g. after a restart).
+ * Does nothing if the session already holds history in memory.
+ */
+export function restoreSessionHistory(
+  sessionKey: string,
+  model: string,
+  turns: Array<{ query: string; answer: string }>,
+): void {
+  const session = getSession(sessionKey, model);
+  if (session.history.hasMessages()) return;
+  for (const turn of turns) session.history.restoreTurn(turn.query, turn.answer);
+}
+
+/**
  * Check whether an agent is currently running for a given session.
  * Used by the gateway to decide whether to enqueue or start a new turn.
  */

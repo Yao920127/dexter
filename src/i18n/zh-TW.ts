@@ -116,7 +116,6 @@ export const zhTW: Record<MessageKey, string> = {
   'select.searchTitle': '選擇網路搜尋供應商',
   'select.searchDesc': 'Dexter 會優先使用您偏好的供應商，失敗時再依序改用其他供應商。',
   'select.noModels': '沒有可用的模型。',
-  'select.ollamaHint': '請確認 Ollama 已啟動且已下載模型。',
   'select.escBack': 'esc 返回',
 
   // Question prompt

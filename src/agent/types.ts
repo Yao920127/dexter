@@ -43,7 +43,7 @@ export type ApprovalDecision = 'allow-once' | 'allow-session' | 'allow-always' |
 export interface AgentConfig {
   /** Model to use for LLM calls (e.g., 'gpt-5.6-sol', 'claude-sonnet-4-20250514') */
   model?: string;
-  /** Model provider (e.g., 'openai', 'anthropic', 'google', 'ollama') */
+  /** Model provider (e.g., 'openai', 'anthropic', 'google', 'ollama-cloud') */
   modelProvider?: string;
   /** Maximum agent loop iterations (default: 10) */
   maxIterations?: number;
