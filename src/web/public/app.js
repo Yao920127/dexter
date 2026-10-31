@@ -117,7 +117,7 @@ function pollUntilDone(id) {
   pollTimer = setTimeout(async () => {
     if (id !== conversationId) return;
     try {
-      const data = await (await fetch(`/api/conversations/${id}`)).json();
+      const data = await (await Dexter.api(`/api/conversations/${id}`)).json();
       if (id !== conversationId) return;
       renderConversation(data.conversation, data.running);
       setRunning(data.running);
@@ -132,7 +132,7 @@ async function openConversation(id) {
   setActive(id);
   let data = null;
   try {
-    const res = await fetch(`/api/conversations/${id}`);
+    const res = await Dexter.api(`/api/conversations/${id}`);
     if (res.ok) data = await res.json();
   } catch { /* fall through to an empty conversation */ }
   controller = null;
@@ -166,11 +166,16 @@ async function ask(query) {
   controller = new AbortController();
   setRunning(true);
   try {
-    const res = await fetch('/api/chat', {
+    const choice = await currentChoice();
+    const res = await Dexter.api('/api/chat', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, conversationId: id, lang: getLang() }), signal: controller.signal,
+      body: JSON.stringify({ query, conversationId: id, lang: getLang(), provider: choice.provider, model: choice.model, keys: await Dexter.all() }),
+      signal: controller.signal,
     });
     if (res.status === 409) throw new Error(t('run.busy'));
+    if (res.status === 429) throw new Error(t('run.limited'));
+    if (res.status === 503) throw new Error(t('run.serverbusy'));
+    if (res.status === 400 && (await res.clone().json().catch(() => ({}))).error === 'missing_key') throw new Error(t('run.nokey'));
     if (!res.ok || !res.body) throw new Error(`${t('run.failed')} (${res.status})`);
     loadHistory(); // the conversation now exists on the server
     const reader = res.body.getReader(), dec = new TextDecoder();
@@ -207,7 +212,7 @@ input.addEventListener('input', autosize);
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   if (sendBtn.dataset.running === '1') { // the send button doubles as stop while a reply is running
-    fetch('/api/chat/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId }) });
+    Dexter.api('/api/chat/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId }) });
     return;
   }
   const q = input.value.trim();
@@ -281,13 +286,13 @@ function highlightHistory() {
 }
 async function loadHistory() {
   try {
-    conversations = (await (await fetch('/api/conversations')).json()).conversations;
+    conversations = (await (await Dexter.api('/api/conversations')).json()).conversations;
     renderHistory();
   } catch { /* the list keeps its previous contents */ }
 }
 async function removeConversation(c) {
   if (!confirm(`${t('hist.confirm')}\n\n${c.title}`)) return;
-  const res = await fetch(`/api/conversations/${c.id}`, { method: 'DELETE' });
+  const res = await Dexter.api(`/api/conversations/${c.id}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 404) return;
   if (c.id === conversationId) await openConversation(crypto.randomUUID());
   loadHistory();
@@ -323,12 +328,22 @@ matchMedia('(max-width: 900px)').addEventListener('change', () => { closeDrawer(
 if (localStorage.getItem('dexter-side-collapsed')) appEl.classList.add('collapsed');
 syncCollapseLabel();
 
-// Show which model will answer; changing it happens on the settings page.
-fetch('/api/settings').then((r) => r.json()).then((d) => {
-  const p = d.providers.find((x) => x.id === d.provider);
-  const m = p && p.models.find((x) => x.id === d.model);
-  $('model-name').textContent = `${p ? p.displayName : d.provider} · ${m ? m.displayName : d.model}`;
-}).catch(() => {});
+// The provider/model pair lives in this browser (set on the settings page); the server supplies the catalogue.
+let catalogue = null;
+async function currentChoice() {
+  catalogue = catalogue || (await (await fetch('/api/settings')).json());
+  const saved = Dexter.getSelection();
+  const valid = saved && catalogue.providers.some((p) => p.id === saved.provider);
+  return valid ? saved : { provider: catalogue.provider, model: catalogue.model };
+}
+function showModelName() {
+  currentChoice().then((c) => {
+    const p = catalogue.providers.find((x) => x.id === c.provider);
+    const m = p && p.models.find((x) => x.id === c.model);
+    $('model-name').textContent = `${p ? p.displayName : c.provider} · ${m ? m.displayName : c.model}`;
+  }).catch(() => {});
+}
+showModelName();
 
 loadHistory();
 openConversation(conversationId);

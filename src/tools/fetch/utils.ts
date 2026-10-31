@@ -107,7 +107,29 @@ export function validateURL(url: string): boolean {
     return false;
   }
 
-  return true;
+  return !isInternalHost(parsed.hostname);
+}
+
+const INTERNAL_SUFFIXES = ['.internal', '.local', '.localhost', '.lan', '.intranet', '.corp', '.home.arpa'];
+
+/** Literal private/loopback/link-local addresses and internal-only names (e.g. Railway's *.railway.internal). */
+export function isInternalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/\.$/, '');
+  if (host.startsWith('[') || host.includes(':')) return true; // IPv6 literals: not worth parsing, never needed
+  if (INTERNAL_SUFFIXES.some((suffix) => host.endsWith(suffix))) return true;
+  const octets = host.split('.').map(Number);
+  const isIpv4 = octets.length === 4 && octets.every((n) => Number.isInteger(n) && n >= 0 && n <= 255);
+  if (/^[0-9.x]+$/i.test(host) && !isIpv4) return true; // decimal/hex/short IPv4 spellings
+  if (!isIpv4) return false;
+  const [a, b] = octets;
+  return (
+    a === 0 || a === 10 || a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) || // carrier-grade NAT
+    (a === 169 && b === 254) ||           // link-local, cloud metadata
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a >= 224
+  );
 }
 
 /**

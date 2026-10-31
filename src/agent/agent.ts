@@ -29,6 +29,22 @@ const OVERFLOW_KEEP_ROUNDS = 3;
 const CLI_ONLY_TOOLS = new Set<string>(['ask_user_question', 'bash']);
 
 /**
+ * Tools that touch the host (files, a local browser, shared memory, schedules). The web channel serves
+ * people the operator does not know, so none of these are bound there.
+ */
+const WEB_BLOCKED_TOOLS = new Set<string>([
+  'read_file',
+  'write_file',
+  'edit_file',
+  'browser',
+  'heartbeat',
+  'cron',
+  'memory_search',
+  'memory_get',
+  'memory_update',
+]);
+
+/**
  * The core agent class that handles the agent loop and tool execution.
  *
  * Architecture:
@@ -74,7 +90,10 @@ export class Agent {
     this.messageQueue = config.messageQueue;
   }
 
-  static async create(config: AgentConfig = {}): Promise<Agent> {
+  static async create(requested: AgentConfig = {}): Promise<Agent> {
+    // Web visitors never share memory with each other or the operator.
+    const config: AgentConfig =
+      requested.channel === 'web' ? { ...requested, memoryEnabled: false } : requested;
     const model = config.model ?? DEFAULT_MODEL;
     const allTools = getTools(model);
     let tools = config.toolAllowlist
@@ -85,6 +104,9 @@ export class Agent {
     const isCli = !config.channel || config.channel === 'cli';
     if (!isCli) {
       tools = tools.filter(t => !CLI_ONLY_TOOLS.has(t.name));
+    }
+    if (config.channel === 'web') {
+      tools = tools.filter(t => !WEB_BLOCKED_TOOLS.has(t.name));
     }
     // The concurrency map is a name→bool lookup; extra entries are harmless since
     // toolMap only holds the (possibly filtered) tools above.

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title data-i18n="doc.settings">Dexter · Settings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +26,7 @@
     <div>
       <p class="label red" data-i18n="set.model.label">Model</p>
       <h2 data-i18n="set.model.title">Choose a model.</h2>
-      <p class="note" data-i18n="set.shared">These settings are shared with the terminal version.</p>
+      <p class="note" data-i18n="set.local">Your choice is remembered in this browser only.</p>
     </div>
     <div>
       <div class="field">
@@ -45,12 +46,17 @@
     <div>
       <p class="label red" data-i18n="key.label">API keys</p>
       <h2 data-i18n="key.title">Connect your services.</h2>
-      <p class="note" data-i18n="key.note">Keys are saved to the .env file in the project folder, the same one the terminal uses. They are never shown again after saving.</p>
+      <p class="note" data-i18n="key.note">Keys are encrypted and stored in this browser only. The server never saves them: they travel with a question, over HTTPS, and are used for that request alone. After saving, only the last four characters are shown.</p>
+      <p class="note warn" id="vault-warn" role="alert" hidden data-i18n="key.unavailable">This browser cannot store keys securely (it needs HTTPS or localhost).</p>
     </div>
-    <div id="keys"></div>
+    <div>
+      <div id="keys"></div>
+      <p style="margin-top:22px"><button type="button" class="btn" id="forget" data-i18n="key.forget">Remove all my data from this browser</button> <span class="note" id="forget-status" role="status"></span></p>
+    </div>
   </div>
 </div>
 <script src="/i18n.js"></script>
+<script src="/vault.js"></script>
 <script src="/settings.js"></script>
 </body>
 </html>
