@@ -41,8 +41,8 @@ describe('getSetting after local models were removed', () => {
   });
 
   test('returns other saved values unchanged', () => {
-    writeSettings({ provider: 'anthropic', modelId: 'claude-sonnet-5' });
+    writeSettings({ provider: 'anthropic', modelId: 'claude-sonnet-5-5' });
     expect(getSetting('provider', 'openai')).toBe('anthropic');
-    expect(getSetting('modelId', 'x')).toBe('claude-sonnet-5');
+    expect(getSetting('modelId', 'x')).toBe('claude-sonnet-5-5');
   });
 });

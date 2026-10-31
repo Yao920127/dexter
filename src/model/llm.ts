@@ -144,7 +144,7 @@ const DEFAULT_FACTORY: ModelFactory = (name, opts) =>
     ...opts,
     apiKey: getApiKey('OPENAI_API_KEY'),
     // GPT-5.6 and GPT-6 require the Responses API when reasoning and function tools are combined.
-    useResponsesApi: name.startsWith('gpt-5.6-') || name.startsWith('gpt-6-'),
+    useResponsesApi: /^gpt-(5\.6|6)[.-]/.test(name),
   });
 
 export function getChatModel(

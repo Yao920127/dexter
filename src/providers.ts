@@ -32,7 +32,7 @@ export const PROVIDERS: ProviderDef[] = [
     displayName: 'Anthropic',
     modelPrefix: 'claude-',
     apiKeyEnvVar: 'ANTHROPIC_API_KEY',
-    fastModel: 'claude-haiku-4-5',
+    fastModel: 'claude-haiku-5-5',
     contextWindow: 1_000_000,
   },
   {
@@ -56,7 +56,7 @@ export const PROVIDERS: ProviderDef[] = [
     displayName: 'Moonshot',
     modelPrefix: 'kimi-',
     apiKeyEnvVar: 'MOONSHOT_API_KEY',
-    fastModel: 'kimi-k3',
+    fastModel: 'kimi-k3.1-pro-highspeed',
     contextWindow: 1_000_000,
   },
   {

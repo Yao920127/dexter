@@ -10,7 +10,8 @@ describe('OpenAI model catalog', () => {
   test('offers the GPT-6 family with Astra as the default', () => {
     expect(getModelIdsForProvider('openai')).toEqual([
       'gpt-6-astra',
-      'gpt-6-sol',
+      'gpt-6.1-sol',
+      'gpt-6.1-terra',
       'gpt-6-luna',
     ]);
     expect(getDefaultModelForProvider('openai')).toBe('gpt-6-astra');
@@ -22,7 +23,7 @@ describe('OpenAI model catalog', () => {
 
   test('shows the GPT-6 tier names in the UI', () => {
     expect(getModelDisplayName('gpt-6-astra')).toBe('GPT 6 Astra');
-    expect(getModelDisplayName('gpt-6-sol')).toBe('GPT 6 Sol');
+    expect(getModelDisplayName('gpt-6.1-sol')).toBe('GPT 6.1 Sol');
     expect(getModelDisplayName('gpt-6-luna')).toBe('GPT 6 Luna');
   });
 });
@@ -30,16 +31,27 @@ describe('OpenAI model catalog', () => {
 describe('Anthropic model catalog', () => {
   test('offers the current Claude family with Sonnet as the default', () => {
     expect(getModelIdsForProvider('anthropic')).toEqual([
-      'claude-sonnet-5',
+      'claude-sonnet-5-5',
       'claude-opus-5-5',
       'claude-fable-5-1',
+      'claude-haiku-5-5',
     ]);
-    expect(getDefaultModelForProvider('anthropic')).toBe('claude-sonnet-5');
+    expect(getDefaultModelForProvider('anthropic')).toBe('claude-sonnet-5-5');
   });
 
   test('shows the Claude model names in the UI', () => {
-    expect(getModelDisplayName('claude-sonnet-5')).toBe('Sonnet 5');
+    expect(getModelDisplayName('claude-sonnet-5-5')).toBe('Sonnet 5.5');
     expect(getModelDisplayName('claude-opus-5-5')).toBe('Opus 5.5');
     expect(getModelDisplayName('claude-fable-5-1')).toBe('Fable 5.1');
+  });
+});
+
+describe('Provider model counts', () => {
+  test('every provider except DeepSeek offers at least three non-preview models', () => {
+    for (const id of ['openai', 'anthropic', 'google', 'xai', 'moonshot']) {
+      const ids = getModelIdsForProvider(id);
+      expect(ids.length).toBeGreaterThanOrEqual(3);
+      expect(ids.some((m) => m.includes('preview'))).toBe(false);
+    }
   });
 });

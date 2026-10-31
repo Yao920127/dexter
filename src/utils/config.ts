@@ -18,19 +18,22 @@ const MODEL_TO_PROVIDER_MAP: Record<string, string> = {
 
 // Deprecated model IDs to upgrade on load
 const DEPRECATED_MODEL_UPGRADES: Record<string, string> = {
-  'gpt-5.6-sol': 'gpt-6-sol',
-  'gpt-5.6-terra': 'gpt-6-sol',
+  'gpt-5.6-sol': 'gpt-6.1-sol',
+  'gpt-5.6-terra': 'gpt-6.1-terra',
+  'gpt-6-sol': 'gpt-6.1-sol',
   'gpt-5.6-luna': 'gpt-6-luna',
   'gpt-5.5': 'gpt-6-astra',
   'gpt-5.4': 'gpt-6-astra',
   'gpt-5.2': 'gpt-6-astra',
-  'claude-sonnet-4-6': 'claude-sonnet-5',
+  'claude-sonnet-4-6': 'claude-sonnet-5-5',
+  'claude-sonnet-5': 'claude-sonnet-5-5',
   'claude-opus-4-8': 'claude-opus-5-5',
   'claude-fable-5': 'claude-fable-5-1',
   'gemini-3-flash-preview': 'gemini-3.8-flash',
+  'gemini-3.1-pro-preview': 'gemini-4-argon',
   'grok-4-0709': 'grok-4.7',
   'grok-4-1-fast-reasoning': 'grok-4.7',
-  'kimi-k2-5': 'kimi-k3',
+  'kimi-k2-5': 'kimi-k3.1-pro',
   'deepseek-v4-flash': 'deepseek-flash',
 };
 
