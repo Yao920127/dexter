@@ -60,6 +60,7 @@
     'key.unavailable': '此瀏覽器無法安全儲存 Key（需要 HTTPS 或 localhost）。',
     'key.forget': '清除此瀏覽器中我的所有資料', 'key.forget.done': '已清除。', 'key.forget.confirm': '要清除此瀏覽器中的 API key、設定與對話指標嗎？伺服器上的對話紀錄將無法再從這個瀏覽器存取。',
     'set.local': '你的選擇只會記在這個瀏覽器。',
+    'key.forget.account.confirm': '要移除帳號中儲存的所有 API key 嗎？你的對話紀錄會保留。',
     'key.group.model': '模型供應商', 'key.group.data': '金融資料', 'key.group.search': '網頁搜尋',
     'key.set': '已加密儲存', 'key.server': '伺服器已設定', 'key.unset': '未設定', 'key.save': '儲存', 'key.remove': '移除',
     'run.nokey': '尚未設定此供應商的 API key。請先到設定頁輸入。', 'run.limited': '請求太頻繁，請稍後再試。', 'run.serverbusy': '伺服器忙碌中，請稍後再試。',
@@ -68,6 +69,15 @@
     'side.label': '側邊欄', 'side.collapse': '收合側邊欄', 'side.expand': '展開側邊欄', 'side.open': '開啟側邊欄', 'side.close': '關閉側邊欄', 'hist.close': '關閉', 'hist.empty': '還沒有對話紀錄。',
     'hist.delete': '刪除對話', 'hist.confirm': '要刪除這則對話嗎？刪除後無法復原。',
     'run.interrupted': '這次回覆被中斷了（伺服器可能重新啟動過）。', 'run.busy': '這個對話仍在處理中，請稍候。',
+    'doc.login': 'Dexter · 登入',
+    'login.label': '登入', 'login.title': '登入以開始研究。',
+    'login.body': '使用 Google 帳號登入。你的 API key 與對話紀錄會綁定在這個帳號，換裝置也看得到。',
+    'login.cta': '使用 Google 登入',
+    'login.err.denied': '登入已取消。', 'login.err.failed': '登入失敗，請再試一次。',
+    'acct.logout': '登出',
+    'key.note.account': 'Key 會加密後綁定在你的 Google 帳號，換裝置登入也能使用。它不會回傳到瀏覽器；儲存後只顯示最後四個字元。',
+    'key.set.account': '已加密存於帳號',
+    'key.forget.account': '移除我帳號中的所有 API key',
     'lang.switch': 'English',
   };
   const EN_RUNTIME = {
@@ -84,6 +94,8 @@
     'side.collapse': 'Collapse sidebar', 'side.expand': 'Expand sidebar', 'side.close': 'Close sidebar',
     'hist.delete': 'Delete conversation', 'hist.confirm': 'Delete this conversation? This cannot be undone.',
     'run.interrupted': 'This reply was interrupted (the server may have restarted).', 'run.busy': 'This conversation is still working. Please wait.',
+    'key.set.account': 'Encrypted in your account',
+    'key.forget.account.confirm': 'Remove every API key saved in your account? Your conversations are kept.',
     'lang.switch': '繁體中文',
   };
 

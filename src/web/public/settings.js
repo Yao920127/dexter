@@ -65,7 +65,7 @@ function keyRow(k) {
   const state = document.createElement('span');
   const isSet = Boolean(stored) || k.serverKey;
   state.className = 'label' + (isSet ? '' : ' red');
-  state.textContent = stored ? `${t('key.set')} ${mask(stored)}` : k.serverKey ? t('key.server') : t('key.unset');
+  state.textContent = stored ? `${t(Dexter.account ? 'key.set.account' : 'key.set')} ${mask(stored)}` : k.serverKey ? t('key.server') : t('key.unset');
   const input = document.createElement('input');
   input.type = 'password'; input.autocomplete = 'off'; input.spellcheck = false; input.required = true;
   input.setAttribute('autocapitalize', 'off'); input.name = `dexter-${k.id}`;
@@ -103,13 +103,23 @@ async function refreshHints() {
   renderKeys();
 }
 async function loadKeys() {
+  await Dexter.ready;
+  if (Dexter.account) useAccountWording();
   if (!Dexter.available) $('vault-warn').hidden = false;
   slots = (await (await fetch('/api/keys')).json()).keys;
   await refreshHints();
 }
 
+// Signed in, keys belong to the account on the server rather than to this browser.
+function useAccountWording() {
+  $('key-note').hidden = true;
+  $('key-note-account').hidden = false;
+  $('forget').dataset.i18n = 'key.forget.account';
+  window.setLang(window.getLang());
+}
+
 $('forget').addEventListener('click', async () => {
-  if (!confirm(t('key.forget.confirm'))) return;
+  if (!confirm(t(Dexter.account ? 'key.forget.account.confirm' : 'key.forget.confirm'))) return;
   await Dexter.forgetEverything();
   $('forget-status').textContent = t('key.forget.done');
   await refreshHints();

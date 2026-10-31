@@ -10,6 +10,8 @@ import { checkApiKeyExists, checkApiKeyExistsForProvider, SEARCH_PROVIDERS } fro
 import { PROVIDERS } from '../utils/model.js';
 import { PROVIDERS as PROVIDER_DEFS, resolveProvider } from '../providers.js';
 import { installRequestEnv, withRequestKeys } from './request-keys.js';
+import { createAuthRuntime } from './auth/runtime.js';
+import type { HistoryStoreAsync } from './auth/db-history.js';
 import { clientIp, createRateLimiter, ownerKeyFrom, redactSecrets, securityHeaders } from './security.js';
 
 config({ quiet: true });
@@ -37,6 +39,9 @@ const ALLOWED_HOSTS = new Set<string>(
     : [`localhost:${PORT}`, `127.0.0.1:${PORT}`],
 );
 const SECURITY_HEADERS = securityHeaders(CLOUD);
+// Google login (with per-user keys and history in a database) turns on when its settings are present;
+// without them the server keeps the browser-local behaviour.
+const AUTH = await createAuthRuntime(process.env, { cloud: CLOUD, port: PORT });
 const pageLimiter = createRateLimiter(300, 10);
 const apiLimiter = createRateLimiter(120, 2);
 const chatIpLimiter = createRateLimiter(6, 1 / 20);
@@ -50,6 +55,8 @@ const STATIC_FILES: Record<string, { file: string; type: string }> = {
   '/chat.css': { file: 'chat.css', type: 'text/css; charset=utf-8' },
   '/app.js': { file: 'app.js', type: 'text/javascript; charset=utf-8' },
   '/settings': { file: 'settings.html', type: 'text/html; charset=utf-8' },
+  '/login': { file: 'login.html', type: 'text/html; charset=utf-8' },
+  '/login.js': { file: 'login.js', type: 'text/javascript; charset=utf-8' },
   '/settings.js': { file: 'settings.js', type: 'text/javascript; charset=utf-8' },
   '/i18n.js': { file: 'i18n.js', type: 'text/javascript; charset=utf-8' },
   '/vault.js': { file: 'vault.js', type: 'text/javascript; charset=utf-8' },
@@ -103,11 +110,13 @@ const KEY_SLOTS: KeySlot[] = [
   })),
 ];
 const API_KEY_PATTERN = /^[\x21-\x7E]{8,400}$/; // printable, no whitespace or newlines
-installRequestEnv(KEY_SLOTS.map((k) => k.envVar), CLOUD);
+// With accounts (or in the cloud) other people use this server, so it never spends its own environment's keys.
+const SERVER_KEYS_HIDDEN = CLOUD || AUTH !== null;
+installRequestEnv(KEY_SLOTS.map((k) => k.envVar), SERVER_KEYS_HIDDEN);
 
 // Browsers keep their own keys (encrypted) and send them with each chat request. A locally run
 // server may also fall back to keys in its .env; a cloud server never does.
-const serverHasKey = (envVar: string): boolean => !CLOUD && checkApiKeyExists(envVar);
+const serverHasKey = (envVar: string): boolean => !SERVER_KEYS_HIDDEN && checkApiKeyExists(envVar);
 
 function handleGetSettings(): Response {
   const listed = PROVIDERS.find((p) => p.providerId === DEFAULT_PROVIDER)?.models[0]?.id;
@@ -120,7 +129,7 @@ function handleGetSettings(): Response {
         id: p.providerId,
         displayName: p.displayName,
         models: p.models,
-        serverKey: !CLOUD && checkApiKeyExistsForProvider(p.providerId),
+        serverKey: !SERVER_KEYS_HIDDEN && checkApiKeyExistsForProvider(p.providerId),
         // Providers without a fixed list (OpenRouter, Ollama Cloud) take a free-form model id.
         freeText: p.models.length === 0,
       })),
@@ -158,6 +167,42 @@ function parseKeys(value: unknown): Record<string, string> | null {
   return out;
 }
 
+/** Converts `{ slotId: value }` (already validated when stored) to environment variable names. */
+function envKeysFrom(slotValues: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const slot of KEY_SLOTS) {
+    const value = slotValues[slot.id];
+    if (value !== undefined) out[slot.envVar] = value;
+  }
+  return out;
+}
+
+const KEY_ROUTE = /^\/api\/account\/keys(?:\/([a-z0-9-]+))?$/;
+
+async function handleAccountKeys(userId: string, req: Request, slotId: string | undefined): Promise<Response> {
+  if (!AUTH) return json({ error: 'Not found' }, 404);
+  if (slotId === undefined) {
+    if (req.method === 'GET') return json({ hints: await AUTH.accounts.keyHints(userId) }, 200);
+    if (req.method === 'DELETE') {
+      await AUTH.accounts.removeAllKeys(userId);
+      return json({ ok: true }, 200);
+    }
+    return json({ error: 'Not found' }, 404);
+  }
+  if (!KEY_SLOTS.some((k) => k.id === slotId)) return json({ error: 'Unknown key' }, 400);
+  if (req.method === 'PUT') {
+    const value = (await readJson(req))?.value;
+    if (typeof value !== 'string' || !API_KEY_PATTERN.test(value)) return json({ error: 'Invalid key format' }, 400);
+    await AUTH.accounts.setKey(userId, slotId, value);
+    return json({ ok: true }, 200);
+  }
+  if (req.method === 'DELETE') {
+    await AUTH.accounts.removeKey(userId, slotId);
+    return json({ ok: true }, 200);
+  }
+  return json({ error: 'Not found' }, 404);
+}
+
 async function readJson(req: Request): Promise<Record<string, unknown> | null> {
   const raw = await req.text();
   if (raw.length > MAX_BODY_BYTES) return null;
@@ -176,11 +221,18 @@ function ownerFrom(req: Request): string | null {
   return ownerKeyFrom(req.headers.get(CLIENT_HEADER));
 }
 
-function storeFor(owner: string) {
+function storeFor(owner: string): HistoryStoreAsync {
+  if (AUTH) return AUTH.historyFor(owner);
   const dir = join(LEGACY_HISTORY_DIR, owner);
   // A local install keeps conversations made before per-browser folders existed: the first browser adopts them.
   if (!CLOUD && !existsSync(dir)) adoptLegacyHistory(LEGACY_HISTORY_DIR, dir);
-  return createHistoryStore(dir);
+  const files = createHistoryStore(dir);
+  return {
+    get: async (id) => files.get(id),
+    list: async () => files.list(),
+    append: async (id, message, now) => void files.append(id, message, now),
+    remove: async (id) => files.remove(id),
+  };
 }
 
 function adoptLegacyHistory(from: string, to: string): void {
@@ -197,23 +249,22 @@ function conversationIdFrom(value: unknown): string | null {
 
 const runKey = (owner: string, id: string): string => `${owner}:${id}`;
 
-function handleListConversations(owner: string): Response {
-  const conversations = storeFor(owner)
-    .list()
+async function handleListConversations(owner: string): Promise<Response> {
+  const conversations = (await storeFor(owner).list())
     .map((c) => ({ ...c, running: running.has(runKey(owner, c.id)) }));
   return json({ conversations }, 200);
 }
 
-function handleGetConversation(owner: string, id: string): Response {
-  const conversation = storeFor(owner).get(id);
+async function handleGetConversation(owner: string, id: string): Promise<Response> {
+  const conversation = await storeFor(owner).get(id);
   return conversation
     ? json({ conversation, running: running.has(runKey(owner, id)) }, 200)
     : json({ error: 'Not found' }, 404);
 }
 
-function handleDeleteConversation(owner: string, id: string): Response {
+async function handleDeleteConversation(owner: string, id: string): Promise<Response> {
   running.get(runKey(owner, id))?.abort();
-  return storeFor(owner).remove(id) ? json({ ok: true }, 200) : json({ error: 'Not found' }, 404);
+  return (await storeFor(owner).remove(id)) ? json({ ok: true }, 200) : json({ error: 'Not found' }, 404);
 }
 
 async function handleStop(owner: string, req: Request): Promise<Response> {
@@ -240,16 +291,21 @@ async function runConversationTurn(turn: Turn): Promise<WebEvent> {
   const sessionKey = `web:${owner}:${id}`;
   const secrets = Object.values(keys);
   // Bring the agent's context back from disk if the server restarted since this conversation began.
-  const prior = store.get(id);
-  if (prior) restoreSessionHistory(sessionKey, model, completedTurns(prior));
-  store.append(id, { role: 'user', text: query });
-  const fail = (message: string): WebEvent => {
+  try {
+    const prior = await store.get(id);
+    if (prior) restoreSessionHistory(sessionKey, model, completedTurns(prior));
+    await store.append(id, { role: 'user', text: query });
+  } catch {
+    running.delete(runKey(owner, id));
+    return { type: 'error', message: 'Could not save this conversation.' };
+  }
+  const fail = async (message: string): Promise<WebEvent> => {
     const safe = redactSecrets(message, secrets);
-    store.append(id, { role: 'assistant', text: safe, kind: 'error' });
+    await store.append(id, { role: 'assistant', text: safe, kind: 'error' });
     return { type: 'error', message: safe };
   };
-  const stopped = (): WebEvent => {
-    store.append(id, { role: 'assistant', text: '', kind: 'stopped' });
+  const stopped = async (): Promise<WebEvent> => {
+    await store.append(id, { role: 'assistant', text: '', kind: 'stopped' });
     return { type: 'error', message: 'stopped' };
   };
   try {
@@ -264,13 +320,13 @@ async function runConversationTurn(turn: Turn): Promise<WebEvent> {
         signal: abort.signal,
       }),
     );
-    if (abort.signal.aborted) return stopped();
-    if (!answer) return fail('Dexter returned no answer.');
-    store.append(id, { role: 'assistant', text: answer, kind: 'answer' });
+    if (abort.signal.aborted) return await stopped();
+    if (!answer) return await fail('Dexter returned no answer.');
+    await store.append(id, { role: 'assistant', text: answer, kind: 'answer' });
     return { type: 'answer', text: answer };
   } catch (error) {
-    if (abort.signal.aborted) return stopped();
-    return fail(error instanceof Error ? error.message : String(error));
+    if (abort.signal.aborted) return await stopped();
+    return await fail(error instanceof Error ? error.message : String(error));
   } finally {
     running.delete(runKey(owner, id));
   }
@@ -283,7 +339,8 @@ async function handleChat(owner: string, req: Request): Promise<Response> {
   const id = conversationIdFrom(body.conversationId);
   const provider = typeof body.provider === 'string' ? body.provider : DEFAULT_PROVIDER;
   const model = typeof body.model === 'string' ? body.model.trim() : '';
-  const keys = parseKeys(body.keys);
+  // With accounts, the user's stored keys are used and anything the browser sends is ignored.
+  const keys = AUTH ? envKeysFrom(await AUTH.accounts.loadKeys(owner)) : parseKeys(body.keys);
   if (!query || query.length > MAX_QUERY_CHARS) return json({ error: 'Invalid query' }, 400);
   if (!id) return json({ error: 'Invalid conversation' }, 400);
   if (!validSelection(provider, model)) return json({ error: 'Invalid provider or model' }, 400);
@@ -334,16 +391,40 @@ function withSecurityHeaders(res: Response, pathname: string): Response {
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
+// A custom header cannot be sent cross-site without a CORS preflight, which this server never grants;
+// together with SameSite=Lax cookies and the Origin check this stops cross-site request forgery.
+const hasClientHeader = (req: Request): boolean => ownerFrom(req) !== null;
+
+const redirectTo = (location: string): Response => new Response(null, { status: 302, headers: { Location: location } });
+
 async function route(req: Request, pathname: string, ip: string): Promise<Response> {
+  if (AUTH && pathname.startsWith('/auth/')) {
+    const gate = apiLimiter.take(ip);
+    if (!gate.ok) return limited(gate.retryAfterSec);
+    if (req.method === 'POST' && !hasClientHeader(req)) return json({ error: 'Missing client id' }, 400);
+    return (await AUTH.handle(req, pathname)) ?? json({ error: 'Not found' }, 404);
+  }
+
   if (pathname.startsWith('/api/')) {
     const gate = apiLimiter.take(ip);
     if (!gate.ok) return limited(gate.retryAfterSec);
 
+    const user = AUTH ? await AUTH.userFrom(req) : null;
+    if (req.method === 'GET' && pathname === '/api/me') {
+      return json(AUTH ? { authEnabled: true, user: user && { email: user.email, name: user.name } } : { authEnabled: false }, 200);
+    }
+    if (AUTH && !user) return json({ error: 'Sign in required' }, 401);
+    if (AUTH && req.method !== 'GET' && !hasClientHeader(req)) return json({ error: 'Missing client id' }, 400);
+
     if (req.method === 'GET' && pathname === '/api/settings') return handleGetSettings();
     if (req.method === 'GET' && pathname === '/api/keys') return handleGetKeys();
 
-    const owner = ownerFrom(req);
+    // With accounts, the owner is the signed-in user's id; the browser-supplied token is only a fallback for no-login mode.
+    const owner = user ? user.id : ownerFrom(req);
     if (!owner) return json({ error: 'Missing client id' }, 400);
+
+    const keyRoute = pathname.match(KEY_ROUTE);
+    if (keyRoute && user) return handleAccountKeys(user.id, req, keyRoute[1]);
 
     if (req.method === 'POST' && pathname === '/api/chat') {
       const byIp = chatIpLimiter.take(ip);
@@ -367,6 +448,12 @@ async function route(req: Request, pathname: string, ip: string): Promise<Respon
   const gate = pageLimiter.take(ip);
   if (!gate.ok) return limited(gate.retryAfterSec);
   const asset = req.method === 'GET' ? STATIC_FILES[pathname] : undefined;
+  if (!AUTH && pathname === '/login') return redirectTo('/app');
+  if (AUTH && asset && (pathname === '/app' || pathname === '/settings' || pathname === '/login')) {
+    const signedIn = (await AUTH.userFrom(req)) !== null;
+    if (pathname === '/login' && signedIn) return redirectTo('/app');
+    if (pathname !== '/login' && !signedIn) return redirectTo('/login');
+  }
   if (asset) {
     return new Response(Bun.file(join(publicDir, asset.file)), {
       headers: { 'Content-Type': asset.type, 'Cache-Control': 'no-cache' },

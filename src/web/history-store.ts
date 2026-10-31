@@ -4,7 +4,7 @@ import { join } from 'node:path';
 export const CONVERSATION_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 
 const TITLE_MAX_CHARS = 60;
-const MESSAGE_MAX_CHARS = 200_000;
+export const MESSAGE_MAX_CHARS = 200_000;
 const LIST_LIMIT = 200;
 
 /** `answer` is the model's reply; `error` and `stopped` mark a turn that did not finish. */
@@ -27,7 +27,7 @@ export interface Conversation {
 
 export type ConversationSummary = Pick<Conversation, 'id' | 'title' | 'createdAt' | 'updatedAt'>;
 
-function makeTitle(firstQuery: string): string {
+export function makeTitle(firstQuery: string): string {
   const flat = firstQuery.replace(/\s+/g, ' ').trim();
   return flat.length > TITLE_MAX_CHARS ? `${flat.slice(0, TITLE_MAX_CHARS - 1)}…` : flat;
 }

@@ -98,7 +98,11 @@
     return token;
   }
   function api(path, init = {}) {
-    return fetch(path, { ...init, headers: { ...(init.headers || {}), 'X-Dexter-Client': clientToken() } });
+    return fetch(path, { ...init, headers: { ...(init.headers || {}), 'X-Dexter-Client': clientToken() } }).then((res) => {
+      // An expired or revoked login: go back to the sign-in page (a no-op when accounts are off, which never returns 401).
+      if (res.status === 401) location.href = '/login';
+      return res;
+    });
   }
 
   function getSelection() {
@@ -115,5 +119,48 @@
     for (const k of ['dexter-client', 'dexter-selection', 'dexter-conversation']) localStorage.removeItem(k);
   }
 
-  window.Dexter = { available, save, remove, hints, all, wipe, clientToken, api, getSelection, setSelection, forgetEverything };
+  // ---- Signed-in mode: keys live (encrypted) on the server, tied to the Google account. ----
+  let account = null; // { email, name } when the server has accounts on and the visitor is signed in
+  const ready = fetch('/api/me')
+    .then((r) => r.json())
+    .then((d) => { account = d.authEnabled && d.user ? d.user : null; })
+    .catch(() => {})
+    .then(() => {
+      for (const el of document.querySelectorAll('[data-logout]')) {
+        el.hidden = !account;
+        if (account) el.title = account.email;
+      }
+    });
+  const keyUrl = (slot) => `/api/account/keys/${encodeURIComponent(slot)}`;
+  const must = (res) => { if (!res.ok) throw new Error('account-key-request-failed'); return res; };
+
+  const local = { save, remove, hints, all, forgetEverything };
+  async function accountSave(slot, value) {
+    must(await api(keyUrl(slot), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value }) }));
+  }
+  async function accountForget() {
+    must(await api('/api/account/keys', { method: 'DELETE' }));
+    for (const k of ['dexter-selection', 'dexter-conversation']) localStorage.removeItem(k);
+  }
+
+  async function logout() {
+    await api('/auth/logout', { method: 'POST' }).catch(() => {});
+    location.href = '/login';
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target instanceof Element && e.target.closest('[data-logout]')) logout();
+  });
+
+  window.Dexter = {
+    ready,
+    get account() { return account; },
+    get available() { return account ? true : available; },
+    async save(slot, value) { await ready; return account ? accountSave(slot, value) : local.save(slot, value); },
+    async remove(slot) { await ready; return account ? must(await api(keyUrl(slot), { method: 'DELETE' })) && undefined : local.remove(slot); },
+    async hints() { await ready; return account ? (await (must(await api('/api/account/keys'))).json()).hints : local.hints(); },
+    // Signed in, the server adds the user's stored keys itself, so the browser sends none.
+    async all() { await ready; return account ? {} : local.all(); },
+    async forgetEverything() { await ready; return account ? accountForget() : local.forgetEverything(); },
+    wipe, clientToken, api, getSelection, setSelection,
+  };
 })();

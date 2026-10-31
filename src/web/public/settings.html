@@ -17,6 +17,7 @@
     <nav aria-label="Primary">
       <a href="/app" data-i18n="nav.desk">Research desk</a>
       <a href="/" data-i18n="nav.overview">Overview</a>
+      <button type="button" class="langbtn" data-logout hidden data-i18n="acct.logout">Sign out</button>
       <button type="button" class="langbtn" data-lang-toggle>繁體中文</button>
     </nav>
   </div>
@@ -46,7 +47,8 @@
     <div>
       <p class="label red" data-i18n="key.label">API keys</p>
       <h2 data-i18n="key.title">Connect your services.</h2>
-      <p class="note" data-i18n="key.note">Keys are encrypted and stored in this browser only. The server never saves them: they travel with a question, over HTTPS, and are used for that request alone. After saving, only the last four characters are shown.</p>
+      <p class="note" id="key-note" data-i18n="key.note">Keys are encrypted and stored in this browser only. The server never saves them: they travel with a question, over HTTPS, and are used for that request alone. After saving, only the last four characters are shown.</p>
+      <p class="note" id="key-note-account" hidden data-i18n="key.note.account">Keys are encrypted and tied to your Google account, so they work on any device you sign in from. They are never sent back to the browser; after saving, only the last four characters are shown.</p>
       <p class="note warn" id="vault-warn" role="alert" hidden data-i18n="key.unavailable">This browser cannot store keys securely (it needs HTTPS or localhost).</p>
     </div>
     <div>

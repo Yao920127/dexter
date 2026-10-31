@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title data-i18n="doc.login">Dexter · Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Noto+Serif+TC:wght@400;700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
+<link rel="stylesheet" href="/newsprint.css">
+</head>
+<body>
+<div class="sheet">
+  <div class="topbar label">
+    <span data-i18n="login.label">Sign in</span>
+    <nav aria-label="Primary">
+      <a href="/" data-i18n="nav.overview">Overview</a>
+      <button type="button" class="langbtn" data-lang-toggle>繁體中文</button>
+    </nav>
+  </div>
+  <div class="masthead compact"><a href="/">Dexter</a></div>
+
+  <div class="spread">
+    <div>
+      <p class="label red" data-i18n="login.label">Sign in</p>
+      <h2 data-i18n="login.title">Sign in to start researching.</h2>
+    </div>
+    <div>
+      <p class="note" data-i18n="login.body">Sign in with Google. Your API keys and conversation history are tied to your account and follow you to any device.</p>
+      <p class="note warn" id="err-denied" role="alert" hidden data-i18n="login.err.denied">Sign-in was cancelled.</p>
+      <p class="note warn" id="err-failed" role="alert" hidden data-i18n="login.err.failed">Sign-in failed. Please try again.</p>
+      <p style="margin-top:22px"><a class="btn solid" href="/auth/google" data-i18n="login.cta">Continue with Google</a></p>
+    </div>
+  </div>
+</div>
+<script src="/i18n.js"></script>
+<script src="/login.js"></script>
+</body>
+</html>

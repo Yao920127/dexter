@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-- Repo: https://github.com/virattt/dexter
+- Repo: https://github.com/Yao920127/dexter
 - Dexter is a CLI-based AI agent for deep financial research, built with TypeScript, Ink (React for CLI), and LangChain.
 
 ## Project Structure
