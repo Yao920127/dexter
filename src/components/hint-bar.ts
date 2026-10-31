@@ -1,6 +1,7 @@
 import { Container, Text } from '@mariozechner/pi-tui';
 import { theme } from '../theme.js';
 import type { SlashCommand } from '../commands/index.js';
+import { t } from '../i18n/index.js';
 
 // Strip ANSI escape codes to get visible character count
 function visibleLength(str: string): number {
@@ -114,21 +115,21 @@ export class HintBarComponent extends Container {
 
     // Right-side esc hints (transient)
     if (state.escPendingClear) {
-      this.rightHint = theme.muted('esc again to clear');
+      this.rightHint = theme.muted(t('hint.escClear'));
     } else if (state.escPendingExit) {
-      this.rightHint = theme.muted('esc again to exit');
+      this.rightHint = theme.muted(t('hint.escExit'));
     }
 
     // Left-side contextual hints
     if (state.isProcessing) {
       const queueNote = state.queueLength > 0
-        ? ` · ${state.queueLength} message${state.queueLength !== 1 ? 's' : ''} queued`
+        ? ` · ${t(state.queueLength !== 1 ? 'hint.queued' : 'hint.queuedOne', { count: state.queueLength })}`
         : '';
-      this.leftHint = theme.muted(` esc to interrupt${queueNote}`);
+      this.leftHint = theme.muted(` ${t('hint.interrupt')}${queueNote}`);
     } else if (state.hasPendingApproval) {
-      this.leftHint = theme.muted(' enter to approve · esc to deny');
+      this.leftHint = theme.muted(` ${t('hint.approve')}`);
     } else if (!state.hasInput && !state.escPendingExit) {
-      this.leftHint = theme.muted(' / for commands');
+      this.leftHint = theme.muted(` ${t('hint.commands')}`);
     }
 
     this.updateHintLine();

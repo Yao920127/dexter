@@ -2,6 +2,7 @@ import { Container, Text, truncateToWidth } from '@mariozechner/pi-tui';
 import type { ApprovalDecision } from '../agent/types.js';
 import { createApprovalSelector } from './select-list.js';
 import { theme } from '../theme.js';
+import { t } from '../i18n/index.js';
 
 function formatToolLabel(tool: string): string {
   return tool
@@ -32,21 +33,21 @@ export class ApprovalPromptComponent extends Container {
     // bash surfaces the command; file tools surface the path.
     const target =
       opts.command !== undefined
-        ? opts.command || '<empty command>'
-        : (args.path as string) || '<unknown>';
+        ? opts.command || t('approval.emptyCommand')
+        : (args.path as string) || t('approval.unknown');
     const headline = truncateToWidth(`${formatToolLabel(tool)}  ${target}`, width, '…');
 
     this.addChild(new Text(border, 0, 0));
-    this.addChild(new Text(theme.warning(theme.bold('Permission required')), 0, 0));
+    this.addChild(new Text(theme.warning(theme.bold(t('approval.required'))), 0, 0));
     this.addChild(new Text(headline, 0, 0));
     if (opts.reason) {
       this.addChild(new Text(theme.muted(truncateToWidth(opts.reason, width, '…')), 0, 0));
     }
-    this.addChild(new Text(theme.muted('Do you want to allow this?'), 0, 0));
+    this.addChild(new Text(theme.muted(t('approval.question')), 0, 0));
     this.addChild(new Text('', 0, 0));
     this.addChild(this.selector);
     this.addChild(new Text('', 0, 0));
-    this.addChild(new Text(theme.muted('Enter to confirm · esc to deny'), 0, 0));
+    this.addChild(new Text(theme.muted(t('approval.footer')), 0, 0));
     this.addChild(new Text(border, 0, 0));
   }
 }

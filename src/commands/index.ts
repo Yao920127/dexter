@@ -1,18 +1,26 @@
+import { t, type MessageKey } from '../i18n/index.js';
+
 export interface SlashCommand {
   name: string;
   description: string;
 }
 
-export const SLASH_COMMANDS: SlashCommand[] = [
-  { name: 'model', description: 'Switch LLM provider and model' },
-  { name: 'search', description: 'Choose preferred web search provider' },
-  { name: 'rules', description: 'Show your research rules' },
-  { name: 'clear', description: 'Clear the conversation' },
-  { name: 'memory', description: 'Show what Dexter remembers about you' },
-  { name: 'heartbeat', description: 'Show your heartbeat monitoring checklist' },
-  { name: 'history', description: 'Show recent conversation summaries' },
-  { name: 'help', description: 'Show keyboard shortcuts and tips' },
-];
+const COMMAND_NAMES = [
+  'model',
+  'search',
+  'rules',
+  'clear',
+  'memory',
+  'heartbeat',
+  'history',
+  'language',
+  'help',
+] as const;
+
+/** Built on demand so descriptions follow the current UI language. */
+export function getSlashCommands(): SlashCommand[] {
+  return COMMAND_NAMES.map((name) => ({ name, description: t(`cmd.${name}` as MessageKey) }));
+}
 
 /**
  * Filter commands matching the current input.
@@ -20,6 +28,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
  */
 export function matchCommands(input: string): SlashCommand[] {
   const query = input.slice(1).toLowerCase();
-  if (query === '') return SLASH_COMMANDS;
-  return SLASH_COMMANDS.filter(cmd => cmd.name.startsWith(query));
+  const commands = getSlashCommands();
+  if (query === '') return commands;
+  return commands.filter(cmd => cmd.name.startsWith(query));
 }

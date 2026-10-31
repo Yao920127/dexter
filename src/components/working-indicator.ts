@@ -5,6 +5,7 @@ import { getRandomThinkingVerb } from '../utils/thinking-verbs.js';
 import { theme } from '../theme.js';
 import { subscribeSpinner, currentSpinnerFrame } from '../utils/spinner.js';
 import { formatTokensCompact } from '../utils/format.js';
+import { t } from '../i18n/index.js';
 
 export interface TurnStats {
   turnStartMs: number;
@@ -86,9 +87,9 @@ export class WorkingIndicatorComponent extends Container {
       return;
     }
     const baseMessage = this.state.status === 'approval'
-      ? 'Waiting for approval...'
+      ? t('working.approval')
       : this.state.status === 'question'
-        ? 'Waiting for your answer...'
+        ? t('working.question')
         : `${this.thinkingVerb}...`;
 
     const suffix = this.computeStatsSuffix();
@@ -110,7 +111,7 @@ export class WorkingIndicatorComponent extends Container {
     const tokens = Math.round(this.displayedChars / 4);
     if (tokens <= 0) return null;
     const arrow = stats.streamMode === 'requesting' ? '↑' : '↓';
-    return theme.muted(`(${arrow} ${formatTokensCompact(tokens)} tokens)`);
+    return theme.muted(`(${arrow} ${formatTokensCompact(tokens)} ${t('working.tokens')})`);
   }
 
   /**

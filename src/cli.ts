@@ -39,6 +39,7 @@ import {
 import { editorTheme, theme } from './theme.js';
 import { matchCommands, type SlashCommand } from './commands/index.js';
 import { initSpinner } from './utils/spinner.js';
+import { parseLanguage, setLanguage, t, toggleLanguage } from './i18n/index.js';
 
 function truncateForHistory(text: string): string {
   const lines = text.split('\n');
@@ -62,30 +63,30 @@ function truncateAtWord(str: string, maxLength: number): string {
 function summarizeToolResult(tool: string, args: Record<string, unknown>, result: string): string {
   if (tool === 'skill') {
     const skillName = args.skill as string;
-    return `Loaded ${skillName} skill`;
+    return t('tool.loadedSkill', { name: skillName });
   }
   try {
     const parsed = JSON.parse(result);
     if (parsed.data) {
       if (Array.isArray(parsed.data)) {
-        return `Received ${parsed.data.length} items`;
+        return t('tool.receivedItems', { count: parsed.data.length });
       }
       if (typeof parsed.data === 'object') {
         const keys = Object.keys(parsed.data).filter((key) => !key.startsWith('_'));
         if (tool === 'get_financials' || tool === 'get_market_data' || tool === 'stock_screener') {
-          if (keys.length === 0) return 'Done';
-          return keys.length === 1 ? 'Called 1 data source' : `Called ${keys.length} data sources`;
+          if (keys.length === 0) return t('tool.done');
+          return keys.length === 1 ? t('tool.calledOneSource') : t('tool.calledSources', { count: keys.length });
         }
         if (tool === 'web_search') {
-          return 'Did 1 search';
+          return t('tool.oneSearch');
         }
-        return `Received ${keys.length} fields`;
+        return t('tool.receivedFields', { count: keys.length });
       }
     }
   } catch {
     return truncateAtWord(result, 50);
   }
-  return 'Received data';
+  return t('tool.receivedData');
 }
 
 function createScreen(
@@ -362,7 +363,7 @@ export async function runCli() {
 
   const refreshError = () => {
     const message = lastError ?? agentRunner.error;
-    errorText.setText(message ? theme.error(`Error: ${message}`) : '');
+    errorText.setText(message ? theme.error(t('error.prefix', { message })) : '');
   };
 
   // Slash command autocomplete state
@@ -370,17 +371,30 @@ export async function runCli() {
   let slashSelectedIndex = 0;
   let slashActive = false;
 
-  const HELP_TEXT = `Keyboard Shortcuts
-  esc          Interrupt query / clear input
-  ctrl+c       Exit Dexter
-  /model       Switch LLM provider and model
-  /search      Choose preferred web search provider
-  /rules       Show research rules
-  /clear       Clear conversation
-  ↑ / ↓        Navigate input history`;
-
-  const handleSlashCommand = async (command: string) => {
+  const handleSlashCommand = async (input: string) => {
+    const [command, ...commandArgs] = input.split(/\s+/);
     switch (command) {
+      case 'language': {
+        const requested = commandArgs[0];
+        const target = requested ? parseLanguage(requested) : null;
+        if (requested && !target) {
+          chatLog.addChild(new Spacer(1));
+          chatLog.addChild(new Text(theme.muted(t('language.usage')), 0, 0));
+          tui.requestRender();
+          break;
+        }
+        if (target) {
+          setLanguage(target);
+        } else {
+          toggleLanguage();
+        }
+        intro.refresh();
+        updateView();
+        chatLog.addChild(new Spacer(1));
+        chatLog.addChild(new Text(theme.muted(t('language.switched')), 0, 0));
+        tui.requestRender();
+        break;
+      }
       case 'model':
         modelSelection.startSelection();
         break;
@@ -391,11 +405,11 @@ export async function runCli() {
         try {
           const rulesContent = await readFile(dexterPath('RULES.md'), 'utf-8');
           chatLog.addChild(new Spacer(1));
-          chatLog.addChild(new Text(theme.muted('Research Rules:'), 0, 0));
+          chatLog.addChild(new Text(theme.muted(t('rules.title')), 0, 0));
           chatLog.addChild(new Text(rulesContent, 0, 0));
         } catch {
           chatLog.addChild(new Spacer(1));
-          chatLog.addChild(new Text(theme.muted('No research rules set. Use "add a rule <text>" to create one.'), 0, 0));
+          chatLog.addChild(new Text(theme.muted(t('rules.none')), 0, 0));
         }
         tui.requestRender();
         break;
@@ -414,11 +428,11 @@ export async function runCli() {
         const messages = modelSelection.inMemoryChatHistory.getMessages();
         chatLog.addChild(new Spacer(1));
         if (messages.length === 0) {
-          chatLog.addChild(new Text(theme.muted('No conversation history yet.'), 0, 0));
+          chatLog.addChild(new Text(theme.muted(t('history.none')), 0, 0));
         } else {
-          chatLog.addChild(new Text(theme.muted('Recent conversations:'), 0, 0));
+          chatLog.addChild(new Text(theme.muted(t('history.recent')), 0, 0));
           for (const msg of messages) {
-            const summary = msg.summary ?? msg.answer?.slice(0, 100) ?? '(pending)';
+            const summary = msg.summary ?? msg.answer?.slice(0, 100) ?? t('history.pending');
             chatLog.addChild(new Text(theme.muted(`  ${msg.id + 1}. ${msg.query}`), 0, 0));
             chatLog.addChild(new Text(theme.muted(`     ${summary}`), 0, 0));
           }
@@ -428,7 +442,7 @@ export async function runCli() {
       }
       case 'help':
         chatLog.addChild(new Spacer(1));
-        chatLog.addChild(new Text(theme.muted(HELP_TEXT), 0, 0));
+        chatLog.addChild(new Text(theme.muted(t('help.text')), 0, 0));
         tui.requestRender();
         break;
     }
@@ -650,10 +664,10 @@ export async function runCli() {
         void modelSelection.handleProviderSelect(providerId);
       });
       showScreenView(
-        'Select provider',
-        'Switch between LLM providers. Applies to this session and future sessions.',
+        t('select.providerTitle'),
+        t('select.providerDesc'),
         selector,
-        'Enter to confirm · esc to exit',
+        t('select.confirmExit'),
         selector,
       );
       return;
@@ -667,10 +681,10 @@ export async function runCli() {
         state.pendingProvider,
       );
       showScreenView(
-        `Select model for ${getProviderDisplayName(state.pendingProvider)}`,
+        t('select.modelTitle', { provider: getProviderDisplayName(state.pendingProvider) }),
         '',
         selector,
-        'Enter to confirm · esc to go back',
+        t('select.confirmBack'),
         selector,
       );
       return;
@@ -681,10 +695,10 @@ export async function runCli() {
       input.onSubmit = (value) => modelSelection.handleModelInputSubmit(value);
       input.onCancel = () => modelSelection.handleModelInputSubmit(null);
       showScreenView(
-        `Enter model name for ${getProviderDisplayName(state.pendingProvider)}`,
-        'Type or paste the model name from openrouter.ai/models',
+        t('select.modelInputTitle', { provider: getProviderDisplayName(state.pendingProvider) }),
+        t('select.modelInputDesc'),
         input,
-        'Examples: anthropic/claude-3.5-sonnet, openai/gpt-4-turbo, meta-llama/llama-3-70b\nEnter to confirm · esc to go back',
+        `${t('select.modelInputExamples')}\n${t('select.confirmBack')}`,
         input,
       );
       return;
@@ -695,10 +709,10 @@ export async function runCli() {
         modelSelection.handleApiKeyConfirm(wantsToSet),
       );
       showScreenView(
-        'Set API Key',
-        `Would you like to set your ${getProviderDisplayName(state.pendingProvider)} API key?`,
+        t('select.apiKeyTitle'),
+        t('select.apiKeyAsk', { provider: getProviderDisplayName(state.pendingProvider) }),
         selector,
-        'Enter to confirm · esc to decline',
+        t('select.confirmDecline'),
         selector,
       );
       return;
@@ -710,10 +724,10 @@ export async function runCli() {
       input.onCancel = () => modelSelection.handleApiKeySubmit(null);
       const apiKeyName = getApiKeyNameForProvider(state.pendingProvider) ?? '';
       showScreenView(
-        `Enter ${getProviderDisplayName(state.pendingProvider)} API Key`,
+        t('select.apiKeyEnter', { provider: getProviderDisplayName(state.pendingProvider) }),
         apiKeyName ? `(${apiKeyName})` : '',
         input,
-        'Enter to confirm · Esc to cancel',
+        t('select.confirmCancel'),
         input,
       );
       return;
@@ -726,10 +740,10 @@ export async function runCli() {
         () => searchSelection.cancelSelection(),
       );
       showScreenView(
-        'Select web search provider',
-        'Dexter tries your preferred provider first and falls back to the others.',
+        t('select.searchTitle'),
+        t('select.searchDesc'),
         selector,
-        'Enter to confirm · esc to exit',
+        t('select.confirmExit'),
         selector,
       );
       return;
@@ -740,10 +754,10 @@ export async function runCli() {
         searchSelection.handleApiKeyConfirm(wantsToSet),
       );
       showScreenView(
-        'Set API Key',
-        `Would you like to set your ${getSearchProviderDisplayName(searchState.pendingProvider)} API key?`,
+        t('select.apiKeyTitle'),
+        t('select.apiKeyAsk', { provider: getSearchProviderDisplayName(searchState.pendingProvider) }),
         selector,
-        'Enter to confirm · esc to decline',
+        t('select.confirmDecline'),
         selector,
       );
       return;
@@ -755,10 +769,10 @@ export async function runCli() {
       input.onCancel = () => searchSelection.handleApiKeySubmit(null);
       const apiKeyName = getApiKeyNameForSearchProvider(searchState.pendingProvider);
       showScreenView(
-        `Enter ${getSearchProviderDisplayName(searchState.pendingProvider)} API Key`,
+        t('select.apiKeyEnter', { provider: getSearchProviderDisplayName(searchState.pendingProvider) }),
         `(${apiKeyName})`,
         input,
-        'Enter to confirm · Esc to cancel',
+        t('select.confirmCancel'),
         input,
       );
     }

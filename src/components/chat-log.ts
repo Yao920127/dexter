@@ -2,8 +2,9 @@ import { Container, Spacer, Text, type TUI } from '@mariozechner/pi-tui';
 import type { TokenUsage } from '../agent/types.js';
 import type { QuestionAnswer } from '../tools/ask-user-question/types.js';
 import { theme } from '../theme.js';
+import { t } from '../i18n/index.js';
 import { AnswerBoxComponent } from './answer-box.js';
-import { ToolEventComponent } from './tool-event.js';
+import { ToolEventComponent, deniedMessage } from './tool-event.js';
 import { SubagentGroupComponent } from './subagent-group.js';
 import { UserQueryComponent } from './user-query.js';
 
@@ -35,15 +36,15 @@ function formatBrowserStep(args: Record<string, unknown>): string | null {
   const url = args.url as string | undefined;
   switch (action) {
     case 'open':
-      return `Opening ${truncateUrl(url || '')}`;
+      return t('browser.opening', { url: truncateUrl(url || '') });
     case 'navigate':
-      return `Navigating to ${truncateUrl(url || '')}`;
+      return t('browser.navigating', { url: truncateUrl(url || '') });
     case 'snapshot':
-      return 'Reading page structure';
+      return t('browser.snapshot');
     case 'read':
-      return 'Extracting page text';
+      return t('browser.read');
     case 'close':
-      return 'Closing browser';
+      return t('browser.close');
     case 'act':
       return null;
     default:
@@ -82,27 +83,27 @@ class BrowserSessionComponent extends Container implements ToolDisplayComponent 
 
   setActive(progressMessage?: string): void {
     this.clearDetail();
-    const message = progressMessage || this.currentStep || 'Searching...';
+    const message = progressMessage || this.currentStep || t('tool.searching');
     this.detail = new Text(`${theme.muted('⎿  ')}${message}`, 0, 0);
     this.addChild(this.detail);
   }
 
   setComplete(summary: string, duration: number): void {
     this.clearDetail();
-    const text = this.currentStep || `${summary}${theme.muted(` in ${formatDuration(duration)}`)}`;
+    const text = this.currentStep || `${summary}${theme.muted(t('common.in', { duration: formatDuration(duration) }))}`;
     this.detail = new Text(`${theme.muted('⎿  ')}${text}`, 0, 0);
     this.addChild(this.detail);
   }
 
   setError(error: string): void {
     this.clearDetail();
-    this.detail = new Text(`${theme.muted('⎿  ')}${theme.error(`Error: ${error}`)}`, 0, 0);
+    this.detail = new Text(`${theme.muted('⎿  ')}${theme.error(t('error.prefix', { message: error }))}`, 0, 0);
     this.addChild(this.detail);
   }
 
   setLimitWarning(warning?: string): void {
     this.clearDetail();
-    this.detail = new Text(`${theme.muted('⎿  ')}${theme.warning(warning || 'Approaching suggested limit')}`, 0, 0);
+    this.detail = new Text(`${theme.muted('⎿  ')}${theme.warning(warning || t('tool.limitWarning'))}`, 0, 0);
     this.addChild(this.detail);
   }
 
@@ -110,10 +111,10 @@ class BrowserSessionComponent extends Container implements ToolDisplayComponent 
     this.clearDetail();
     const label =
       decision === 'allow-once'
-        ? 'Approved'
+        ? t('approval.approved')
         : decision === 'allow-session'
-          ? 'Approved (session)'
-          : 'Denied';
+          ? t('approval.approvedSession')
+          : t('approval.denied');
     const color = decision === 'deny' ? theme.warning : theme.primary;
     this.detail = new Text(`${theme.muted('⎿  ')}${color(label)}`, 0, 0);
     this.addChild(this.detail);
@@ -121,8 +122,7 @@ class BrowserSessionComponent extends Container implements ToolDisplayComponent 
 
   setDenied(path: string, tool: string): void {
     this.clearDetail();
-    const action = tool === 'write_file' ? 'write to' : tool === 'edit_file' ? 'edit of' : tool;
-    this.detail = new Text(`${theme.muted('⎿  ')}${theme.warning(`User denied ${action} ${path}`)}`, 0, 0);
+    this.detail = new Text(`${theme.muted('⎿  ')}${theme.warning(deniedMessage(tool, path))}`, 0, 0);
     this.addChild(this.detail);
   }
 
@@ -173,7 +173,7 @@ export class ChatLogComponent extends Container {
   }
 
   addInterrupted() {
-    this.addChild(new Text(`${theme.muted('⎿  Interrupted · What should Dexter do instead?')}`, 0, 0));
+    this.addChild(new Text(`${theme.muted(`⎿  ${t('common.interrupted')}`)}`, 0, 0));
   }
 
   startTool(toolCallId: string, toolName: string, args: Record<string, unknown>) {
@@ -296,7 +296,7 @@ export class ChatLogComponent extends Container {
     if (answers.length === 0) {
       return;
     }
-    this.addChild(new Text(`${theme.success('⏺')} ${theme.muted('Answered:')}`, 0, 0));
+    this.addChild(new Text(`${theme.success('⏺')} ${theme.muted(t('answered'))}`, 0, 0));
     for (const a of answers) {
       const picks = [...a.selected];
       if (a.otherText) {
@@ -311,7 +311,7 @@ export class ChatLogComponent extends Container {
     this.addChild(
       new Text(
         `${theme.muted(
-          `⏺ Context threshold reached - cleared ${clearedCount} old tool result${clearedCount !== 1 ? 's' : ''}, kept ${keptCount} most recent`,
+          `⏺ ${t(clearedCount !== 1 ? 'context.cleared' : 'context.clearedOne', { cleared: clearedCount, kept: keptCount })}`,
         )}`,
         0,
         0,
@@ -322,7 +322,7 @@ export class ChatLogComponent extends Container {
   addMicrocompact(cleared: number, tokensSaved: number) {
     this.addChild(
       new Text(
-        `${theme.muted(`⏺ Microcompact: cleared ${cleared} old tool result${cleared !== 1 ? 's' : ''} (~${Math.round(tokensSaved / 1000)}K tokens)`)}`,
+        `${theme.muted(`⏺ ${t(cleared !== 1 ? 'context.microcompact' : 'context.microcompactOne', { cleared, tokens: Math.round(tokensSaved / 1000) })}`)}`,
         0,
         0,
       ),
@@ -335,7 +335,7 @@ export class ChatLogComponent extends Container {
       const pct = Math.round((saved / preTokens) * 100);
       this.addChild(
         new Text(
-          `${theme.muted(`⏺ Context compacted (${pct}% reduction, ~${Math.round(saved / 1000)}K tokens saved)`)}`,
+          `${theme.muted(`⏺ ${t('context.compacted', { pct, saved: Math.round(saved / 1000) })}`)}`,
           0,
           0,
         ),
@@ -343,7 +343,7 @@ export class ChatLogComponent extends Container {
     } else if (!success) {
       this.addChild(
         new Text(
-          `${theme.muted('⏺ Compaction failed, falling back to context clearing')}`,
+          `${theme.muted(`⏺ ${t('context.compactFailed')}`)}`,
           0,
           0,
         ),

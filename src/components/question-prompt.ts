@@ -1,6 +1,7 @@
 import { Container, Key, matchesKey, truncateToWidth, type TUI } from '@mariozechner/pi-tui';
 import { CustomEditor } from './custom-editor.js';
 import { editorTheme, theme } from '../theme.js';
+import { t } from '../i18n/index.js';
 import type { Question, QuestionAnswer, UserAnswers } from '../tools/ask-user-question/types.js';
 
 /** Marker stored in a multi-select question's set when "Other" is chosen. */
@@ -294,7 +295,7 @@ export class QuestionPromptComponent extends Container {
       const seg = `${box} ${this.questions[i].header}`;
       segs.push(i === this.activeTab ? theme.primary(theme.bold(seg)) : theme.muted(seg));
     }
-    const submitSeg = '✔ Submit';
+    const submitSeg = t('q.submitTab');
     segs.push(
       this.activeTab === this.submitTab ? theme.primary(theme.bold(submitSeg)) : theme.muted(submitSeg),
     );
@@ -317,12 +318,12 @@ export class QuestionPromptComponent extends Container {
     // Other row
     const m = q.options.length;
     const otherSuffix = this.otherText[this.activeTab] ? ` (${this.otherText[this.activeTab]})` : '';
-    lines.push(...this.renderRow(m, cursor, `Type something.${otherSuffix}`));
+    lines.push(...this.renderRow(m, cursor, `${t('q.typeSomething')}${otherSuffix}`));
 
     lines.push(rule);
 
     // Chat about this row (below the rule)
-    lines.push(...this.renderRow(m + 1, cursor, 'Chat about this'));
+    lines.push(...this.renderRow(m + 1, cursor, t('q.chat')));
     lines.push('');
     lines.push(theme.muted(this.footerHint()));
     return lines;
@@ -349,31 +350,31 @@ export class QuestionPromptComponent extends Container {
     const lines: string[] = [];
     lines.push(theme.bold(q.question));
     lines.push('');
-    lines.push(theme.muted('Type your answer:'));
+    lines.push(theme.muted(t('q.typeAnswer')));
     lines.push(...(this.editor?.render(width) ?? []));
     lines.push('');
-    lines.push(theme.muted('Enter save · Esc back'));
+    lines.push(theme.muted(t('q.saveBack')));
     return lines;
   }
 
   private renderSubmit(): string[] {
     const lines: string[] = [];
-    lines.push(theme.bold('Review your answers:'));
+    lines.push(theme.bold(t('q.review')));
     lines.push('');
     this.questions.forEach((q, i) => {
-      const answer = this.isAnswered(i) ? this.answerText(i) : theme.dim('— not answered');
+      const answer = this.isAnswered(i) ? this.answerText(i) : theme.dim(t('q.notAnswered'));
       lines.push(`  ${theme.muted(q.header)}: ${answer}`);
     });
     lines.push('');
     const hint = this.allAnswered()
-      ? 'Enter to submit · Tab/Arrow keys to navigate · Esc to cancel'
-      : 'Answer all questions to submit · Tab/Arrow keys to navigate · Esc to cancel';
+      ? `${t('q.submitReady')} · ${t('q.nav')}`
+      : `${t('q.submitIncomplete')} · ${t('q.nav')}`;
     lines.push(theme.muted(hint));
     return lines;
   }
 
   private footerHint(): string {
-    const verb = this.questions[this.activeTab].multiSelect ? 'Enter/Space to toggle' : 'Enter to select';
-    return `${verb} · Tab/Arrow keys to navigate · Esc to cancel`;
+    const verb = this.questions[this.activeTab].multiSelect ? t('q.toggle') : t('q.select');
+    return `${verb} · ${t('q.nav')}`;
   }
 }

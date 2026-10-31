@@ -2,6 +2,7 @@ import { Container, Input, SelectList, Text, type SelectItem, getEditorKeybindin
 import { PROVIDERS, type Model } from '../utils/model.js';
 import type { ApprovalDecision } from '../agent/types.js';
 import { selectListTheme, theme } from '../theme.js';
+import { t } from '../i18n/index.js';
 
 export class VimSelectList extends SelectList {
   handleInput(keyData: string): void {
@@ -23,13 +24,13 @@ class EmptyModelSelector extends Container {
   constructor(providerId: string, onCancel: () => void) {
     super();
     this.onCancel = onCancel;
-    this.addChild(new Text(theme.muted('No models available.'), 0, 0));
+    this.addChild(new Text(theme.muted(t('select.noModels')), 0, 0));
     if (providerId === 'ollama') {
       this.addChild(
-        new Text(theme.muted('Make sure Ollama is running and you have models downloaded.'), 0, 0),
+        new Text(theme.muted(t('select.ollamaHint')), 0, 0),
       );
     }
-    this.addChild(new Text(theme.muted('esc to go back'), 0, 0));
+    this.addChild(new Text(theme.muted(t('select.escBack')), 0, 0));
   }
 
   handleInput(keyData: string): void {
@@ -98,15 +99,15 @@ export function createApprovalSelector(
   onSelect: (decision: ApprovalDecision) => void,
   proposedRule?: string,
 ) {
-  const items: SelectItem[] = [{ value: 'allow-once', label: '1. Yes' }];
+  const items: SelectItem[] = [{ value: 'allow-once', label: `1. ${t('approval.yes')}` }];
   if (proposedRule) {
     // bash: offer to persist a rule, and scope the session grant to this query.
-    items.push({ value: 'allow-always', label: `2. Yes, and always allow ${proposedRule}` });
-    items.push({ value: 'allow-session', label: '3. Yes, allow all bash this query' });
-    items.push({ value: 'deny', label: '4. No' });
+    items.push({ value: 'allow-always', label: `2. ${t('approval.always', { rule: proposedRule })}` });
+    items.push({ value: 'allow-session', label: `3. ${t('approval.sessionBash')}` });
+    items.push({ value: 'deny', label: `4. ${t('approval.no')}` });
   } else {
-    items.push({ value: 'allow-session', label: '2. Yes, allow all edits this session' });
-    items.push({ value: 'deny', label: '3. No' });
+    items.push({ value: 'allow-session', label: `2. ${t('approval.sessionEdits')}` });
+    items.push({ value: 'deny', label: `3. ${t('approval.no')}` });
   }
   const list = new VimSelectList(items, 6, selectListTheme);
   list.onSelect = (item) => onSelect(item.value as ApprovalDecision);
@@ -116,8 +117,8 @@ export function createApprovalSelector(
 
 export function createApiKeyConfirmSelector(onConfirm: (wantsToSet: boolean) => void) {
   const items: SelectItem[] = [
-    { value: 'yes', label: '1. Yes' },
-    { value: 'no', label: '2. No' },
+    { value: 'yes', label: `1. ${t('approval.yes')}` },
+    { value: 'no', label: `2. ${t('approval.no')}` },
   ];
   const list = new VimSelectList(items, 4, selectListTheme);
   list.onSelect = (item) => onConfirm(item.value === 'yes');
@@ -147,7 +148,7 @@ export class ApiKeyInputComponent {
       : raw;
     return [
       `${theme.primary('> ')}${display}`,
-      theme.muted('Enter to confirm · Esc to cancel'),
+      theme.muted(t('select.confirmCancel')),
     ];
   }
 

@@ -2,6 +2,7 @@ import { Container, Spacer, Text, type TUI } from '@mariozechner/pi-tui';
 import type { ApprovalDecision } from '../agent/types.js';
 import { theme } from '../theme.js';
 import { subscribeSpinner, SPINNER_INTERVAL_MS } from '../utils/spinner.js';
+import { t } from '../i18n/index.js';
 
 const CIRCLE = '⏺';
 
@@ -63,16 +64,22 @@ function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+export function deniedMessage(tool: string, path: string): string {
+  if (tool === 'write_file') return t('approval.deniedWrite', { path });
+  if (tool === 'edit_file') return t('approval.deniedEdit', { path });
+  return t('approval.deniedOther', { tool, path });
+}
+
 function approvalLabel(decision: ApprovalDecision): string {
   switch (decision) {
     case 'allow-once':
-      return 'Approved';
+      return t('approval.approved');
     case 'allow-session':
-      return 'Approved (session)';
+      return t('approval.approvedSession');
     case 'allow-always':
-      return 'Approved (always)';
+      return t('approval.approvedAlways');
     case 'deny':
-      return 'Denied';
+      return t('approval.denied');
   }
 }
 
@@ -119,7 +126,7 @@ export class ToolEventComponent extends Container {
     this.clearDetail();
     this.header.setText(`${theme.primary(CIRCLE)} ${this.toolTitle}`);
     const detail = new Text(
-      `${theme.muted('⎿  ')}${summary}${theme.muted(` in ${formatDuration(duration)}`)}`,
+      `${theme.muted('⎿  ')}${summary}${theme.muted(t('common.in', { duration: formatDuration(duration) }))}`,
       0,
       0
     );
@@ -131,7 +138,7 @@ export class ToolEventComponent extends Container {
     this.clearDetail();
     // Solid red circle
     this.header.setText(`${theme.error(CIRCLE)} ${this.toolTitle}`);
-    const detail = new Text(`${theme.muted('⎿  ')}${theme.error(`Error: ${truncateAtWord(error, 80)}`)}`, 0, 0);
+    const detail = new Text(`${theme.muted('⎿  ')}${theme.error(t('error.prefix', { message: truncateAtWord(error, 80) }))}`, 0, 0);
     this.completedDetails.push(detail);
     this.addChild(detail);
   }
@@ -139,7 +146,7 @@ export class ToolEventComponent extends Container {
   setLimitWarning(warning?: string) {
     this.clearDetail();
     this.activeDetail = new Text(
-      `${theme.muted('⎿  ')}${theme.warning(truncateAtWord(warning || 'Approaching suggested limit', 100))}`,
+      `${theme.muted('⎿  ')}${theme.warning(truncateAtWord(warning || t('tool.limitWarning'), 100))}`,
       0,
       0,
     );
@@ -149,8 +156,7 @@ export class ToolEventComponent extends Container {
   setDenied(path: string, tool: string) {
     this.clearDetail();
     this.header.setText(`${theme.error(CIRCLE)} ${this.toolTitle}`);
-    const action = tool === 'write_file' ? 'write to' : tool === 'edit_file' ? 'edit of' : tool;
-    const detail = new Text(`${theme.muted('⎿  ')}${theme.warning(`User denied ${action} ${path}`)}`, 0, 0);
+    const detail = new Text(`${theme.muted('⎿  ')}${theme.warning(deniedMessage(tool, path))}`, 0, 0);
     this.completedDetails.push(detail);
     this.addChild(detail);
   }

@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getChannelProfile } from './channels.js';
 import { dexterPath } from '../utils/paths.js';
+import { getLanguagePromptHint } from '../i18n/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -279,7 +280,7 @@ Embody the identity and investing philosophy described above. Let it shape your 
 
 ## Response Format
 
-${formatBullets}${tablesSection}${groupContext ? '\n\n' + buildGroupSection(groupContext) : ''}`;
+${formatBullets}${tablesSection}${groupContext ? '\n\n' + buildGroupSection(groupContext) : ''}${!channel || channel === 'cli' ? getLanguagePromptHint() : ''}`;
 }
 
 // ============================================================================
